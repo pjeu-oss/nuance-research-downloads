@@ -35,6 +35,11 @@ jobs:
           opener=build_opener(NoRedirect())
           root=Path('release');root.mkdir()
           expected={'windows':'aacc72221dd7c12e845728100e5b5eb9f6b9744d5ea09ad73886767675dbfd2a','linux':'194548ed5c5899d6ab63eed96b9dbd5c41c3cd7c27a8585345434874cbb63394'}
+          def sha(path):
+              digest=hashlib.sha256()
+              with path.open('rb') as stream:
+                  for part in iter(lambda:stream.read(1024*1024),b''):digest.update(part)
+              return digest.hexdigest()
           names={'windows':'Nuance-Research-Windows-x64-Setup.exe','linux':'Nuance-Research-Linux-amd64.deb'}
           for platform in ('windows','linux'):
               url=os.environ[platform.upper()+'_URL']
@@ -48,7 +53,7 @@ jobs:
                       shutil.copyfileobj(source,target,1024*1024)
               except Exception as error:
                   raise SystemExit('Temporary binary download failed: '+type(error).__name__)
-              assert hashlib.file_digest(archive.open('rb'),'sha256').hexdigest()==expected[platform],'Build artifact digest mismatch'
+              assert sha(archive)==expected[platform],'Build artifact digest mismatch'
               allowed={names[platform],names[platform]+'.sha256','build-manifest.json'}
               seen=set()
               with zipfile.ZipFile(archive) as bundle:
@@ -63,7 +68,7 @@ jobs:
               assert seen==allowed,'Incomplete binary artifact'
               binary=root/names[platform]
               checksum=re.search(r'\b[0-9a-fA-F]{64}\b',(root/(names[platform]+'.sha256')).read_text(encoding='utf-8-sig')).group().lower()
-              assert hashlib.file_digest(binary.open('rb'),'sha256').hexdigest()==checksum,'Installer checksum mismatch'
+              assert sha(binary)==checksum,'Installer checksum mismatch'
               with binary.open('rb') as stream:assert stream.read(2 if platform=='windows' else 8)==(b'MZ' if platform=='windows' else b'!<arch>\n')
               manifest=json.loads((root/('build-manifest-'+platform+'.json')).read_text(encoding='utf-8-sig'))
               assert manifest['version']=='0.24.0' and manifest['account_required'] and manifest['configured'] and manifest['run']=='38929874939'
