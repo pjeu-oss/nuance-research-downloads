@@ -1,0 +1,84 @@
+name: Publish verified installer binaries
+on:
+  workflow_dispatch:
+    inputs:
+      windows_url:
+        description: Temporary GitHub build artifact URL for Windows binaries only
+        required: true
+        type: string
+      linux_url:
+        description: Temporary GitHub build artifact URL for Linux binaries only
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: release-024-binaries
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: Fetch and verify the two tested binary artifacts
+        env:
+          WINDOWS_URL: ${{ inputs.windows_url }}
+          LINUX_URL: ${{ inputs.linux_url }}
+        shell: python
+        run: |
+          import os,json,hashlib,zipfile,shutil,re
+          from pathlib import Path,PurePosixPath
+          from urllib.request import Request,build_opener,HTTPRedirectHandler
+          from urllib.parse import urlparse
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs):return None
+          opener=build_opener(NoRedirect())
+          root=Path('release');root.mkdir()
+          expected={'windows':'aacc72221dd7c12e845728100e5b5eb9f6b9744d5ea09ad73886767675dbfd2a','linux':'194548ed5c5899d6ab63eed96b9dbd5c41c3cd7c27a8585345434874cbb63394'}
+          names={'windows':'Nuance-Research-Windows-x64-Setup.exe','linux':'Nuance-Research-Linux-amd64.deb'}
+          for platform in ('windows','linux'):
+              url=os.environ[platform.upper()+'_URL']
+              print('::add-mask::'+url)
+              parsed=urlparse(url)
+              assert parsed.scheme=='https' and parsed.hostname.endswith('.blob.core.windows.net') and '/artifacts/' in parsed.path
+              archive=Path(platform+'.zip')
+              try:
+                  with opener.open(Request(url),timeout=120) as source,archive.open('wb') as target:
+                      assert int(source.headers['Content-Length'])<2*1024**3
+                      shutil.copyfileobj(source,target,1024*1024)
+              except Exception as error:
+                  raise SystemExit('Temporary binary download failed: '+type(error).__name__)
+              assert hashlib.file_digest(archive.open('rb'),'sha256').hexdigest()==expected[platform],'Build artifact digest mismatch'
+              allowed={names[platform],names[platform]+'.sha256','build-manifest.json'}
+              seen=set()
+              with zipfile.ZipFile(archive) as bundle:
+                  for item in bundle.infolist():
+                      if item.is_dir():continue
+                      parts=PurePosixPath(item.filename).parts
+                      name=parts[-1]
+                      assert '..' not in parts and name in allowed and name not in seen and item.file_size<2*1024**3,'Unexpected artifact content'
+                      seen.add(name)
+                      destination=root/(('build-manifest-'+platform+'.json') if name=='build-manifest.json' else name)
+                      with bundle.open(item) as source,destination.open('wb') as target:shutil.copyfileobj(source,target,1024*1024)
+              assert seen==allowed,'Incomplete binary artifact'
+              binary=root/names[platform]
+              checksum=re.search(r'\b[0-9a-fA-F]{64}\b',(root/(names[platform]+'.sha256')).read_text(encoding='utf-8-sig')).group().lower()
+              assert hashlib.file_digest(binary.open('rb'),'sha256').hexdigest()==checksum,'Installer checksum mismatch'
+              with binary.open('rb') as stream:assert stream.read(2 if platform=='windows' else 8)==(b'MZ' if platform=='windows' else b'!<arch>\n')
+              manifest=json.loads((root/('build-manifest-'+platform+'.json')).read_text(encoding='utf-8-sig'))
+              assert manifest['version']=='0.24.0' and manifest['account_required'] and manifest['configured'] and manifest['run']=='38929874939'
+              assert set(manifest['roles'])=={'writer','validator','admin'} and manifest['environment_auth_override'] is False and manifest['source_archive_endpoint'] is False
+              print(platform+': trusted build artifact and installer checksums verified')
+      - name: Add verified binaries to the prepared beta release and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view research-beta-0.24 --json assets > existing-assets.json
+          python - <<'PY'
+          import json
+          names={x['name'] for x in json.load(open('existing-assets.json'))['assets']}
+          assert {'Nuance-Research-Mac-arm64-Preview.pkg','Nuance-Research-Mac-arm64-Preview.pkg.sha256','build-manifest-mac.json'}<=names,'Verified Mac assets must already be attached'
+          PY
+          gh release upload research-beta-0.24 release/*.exe release/*.deb release/*.sha256 release/build-manifest-*.json
+          gh release edit research-beta-0.24 --draft=false --prerelease --latest=false
