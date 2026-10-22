@@ -1,19 +1,25 @@
-# Nuance-Research — official beta downloads
+# Nuance-Research
 
-Use the latest **0.24 account-gated beta** in [Releases](https://github.com/pjeu-oss/nuance-research-downloads/releases).
+Bibliothèque, recherche documentaire et rédaction scientifique. Le moteur et le modèle sont intégrés aux installateurs : aucun serveur sur le Mac du développeur, Python, Docker ou GPU n’est nécessaire chez l’utilisateur. Un compte Nuance avec un statut rédacteur, validateur ou administrateur approuvé est requis.
 
-An existing Nuance account with an administrator-approved **writer, validator or administrator** role is required. Downloading or copying an installer does not grant access. Nuance-App is unchanged. First launch asks you to sign in with your existing Nuance account by Google, email code or existing password, then select a project. Unapproved accounts see “Vous n'êtes pas autorisé à accéder à ce service”.
+## Télécharger la bêta 0.30
 
-- **Mac:** Apple Silicon (M1 or newer), macOS 14+; one `.pkg` installer.
-- **Windows:** Intel/AMD x64; one `.exe` installer.
-- **Linux:** Ubuntu 22.04+ / Debian 12+, Intel/AMD64; one `.deb` installer. Other distributions, ARM Linux and Intel Macs are not covered by these packages.
+| Ordinateur | Installateur |
+|---|---|
+| Mac Apple Silicon — macOS 14+ | [Télécharger pour Mac](https://github.com/pjeu-oss/nuance-research-downloads/releases/download/research-beta-0.30/Nuance-Research-Mac-arm64-Preview.pkg) |
+| Windows x64 Intel/AMD | [Télécharger pour Windows](https://github.com/pjeu-oss/nuance-research-downloads/releases/download/research-beta-0.30/Nuance-Research-Windows-x64-Setup.exe) |
+| Linux amd64 — Ubuntu 22.04+ / Debian 12+ | [Télécharger pour Linux](https://github.com/pjeu-oss/nuance-research-downloads/releases/download/research-beta-0.30/Nuance-Research-Linux-amd64.deb) |
 
-Save your work and quit Research before updating. Keep a separate backup. No personal documents, passwords or secret server keys are bundled. Binaries include a local multilingual model and take roughly 2 GiB installed, plus your documents. Check the adjacent SHA-256 checksum and platform manifest.
+[Notes, empreintes SHA-256, captures et rapports de vérification](https://github.com/pjeu-oss/nuance-research-downloads/releases/tag/research-beta-0.30). Les Mac Intel et les plateformes ARM Windows/Linux ne sont pas couverts par ces paquets.
 
-**Beta limitations:** publisher signing/notarization and interactive Windows/Linux laptop qualification remain pending. Mac has an ad-hoc application signature; this does not identify a trusted Apple publisher. Do not bypass operating-system warnings blindly. The Google provider and the explicitly approved loopback redirect are configured; a real-account Google round trip still needs validation.
+Enregistrer son travail, quitter Research, puis ouvrir l’installateur téléchargé. Conserver une sauvegarde séparée de sa bibliothèque. Sur Linux, ouvrir le fichier avec le gestionnaire de logiciels ou utiliser `sudo apt install ./Nuance-Research-Linux-amd64.deb`. L’interface Linux s’ouvre dans le navigateur du poste ; fermer l’onglet ne quitte pas le moteur : utiliser l’action **Quit local engine** du lanceur.
 
-This repository distributes installers and documentation only; it contains no Nuance-Research application source. GitHub-generated source archives contain this documentation. The development repository is private.
+Internet est nécessaire pour l’authentification Nuance et les services documentaires externes. Les documents personnels ne sont pas inclus dans les paquets et restent dans le dossier de données du compte local.
 
-**Protection has limits:** installed software can be copied, inspected or modified by someone controlling their computer. These builds require account authorization in the official client, but are not DRM, device-bound licensing, or tamper-proof confidentiality. Strong confidentiality requires a server-hosted engine. Earlier versions and open-source components retain their own licence rights. Preliminary proprietary terms for new 0.24 changes require legal review and do not revoke historical MIT rights.
+## Vérifications et limites
 
-Share this page or the release link; never share your credentials or private library.
+La 0.30 aligne l’interface et le moteur sur le même instantané, sécurise la livraison des styles indépendamment des associations Windows et teste les vrais paquets. Les contrôles graphiques du portail couvrent les couleurs, les thèmes clair/sombre, la langue et la fermeture des menus. Le contraste élevé du système reste respecté. Les rapports précisent la portée exacte ; ils ne remplacent pas tous les essais sur des portables et comptes réels.
+
+Bêta : installateur Windows sans signature éditeur ; Mac avec signature ad-hoc vérifiée, sans Developer ID ni notarisation. Un avertissement du système peut apparaître. Aucun installateur ne peut être garanti sans défaut sur toutes les machines.
+
+Ce dépôt public distribue uniquement les installateurs et leurs rapports. Le code courant est conservé séparément dans un dépôt privé.
